@@ -32,3 +32,12 @@
 - Estimate future schedule visually
     ![image of Analytics Map](https://github.com/R0ot2U/AnalyticsMapping/blob/master/images/Map%20Demo%201.png?raw=true)
 - View historical runs visually
+
+## In Progress
+- Schedule reading of Dataflows as this is in JSON format currently
+- CronExpression creator/validator
+- CronExpression estimator : replacement for external API
+- Edit Schedules in the Map view
+
+## Roadmap
+- Orchestration
