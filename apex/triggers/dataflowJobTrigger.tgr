@@ -1,0 +1,7 @@
+trigger dataflowJobTrigger on analyticsmap__Dataflow_Job__c (after insert, after update) {
+    if( Trigger.isInsert || Trigger.isAfter || Trigger.isUpdate ){
+        if( Trigger.isAfter ){
+            AvgDuration.avgDuration();
+        }
+    }
+}

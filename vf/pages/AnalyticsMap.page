@@ -1,0 +1,313 @@
+<apex:page controller="AnalyticsMapController">
+    
+    <apex:slds /> 
+    
+    <!--
+Timeline library is from https://github.com/visjs/vis-timeline 
+TODO:
+1) Navigation initial setup - https://github.com/visjs/vis-timeline/blob/73a7e51724063f51e0d2c8d5d56da3b97f9da85b/examples/timeline/interaction/animateWindow.html
+2) 
+-->
+    
+    <html>
+        <head>
+            <title>Timeline</title>
+            <apex:includeScript value="{!$Resource.visTimelineJS}"/>
+            <apex:stylesheet value="{!$Resource.visTimlineCSS}" />
+            <style type="text/css">
+                
+                html, body {
+                width: 100%;
+                height: 100%;
+                padding: 0;
+                margin: 0;
+                }
+                
+                body, td, th {
+                font-family: arial, sans-serif;
+                font-size: 11pt;
+                color: #4D4D4D;
+                line-height: 1.7em;
+                }
+                
+                #container {
+                margin: 0 auto;
+                padding-bottom: 50px;
+                width: 900px;
+                }
+                
+                h1 {
+                font-size: 180%;
+                font-weight: bold;
+                padding: 0;
+                margin: 1em 0 1em 0;
+                }
+                
+                h2 {
+                padding-top: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #a0c0f0;
+                color: #2B7CE9;
+                }
+                
+                h3 {
+                font-size: 140%;
+                }
+                
+                
+                a {
+                color: #2B7CE9;
+                text-decoration: none;
+                }
+                a:visited {
+                color: #2E60A4;
+                }
+                a:hover {
+                color: red;
+                text-decoration: underline;
+                }
+                
+                hr {
+                border: none 0;
+                border-top: 1px solid #abc;
+                height: 1px;
+                }
+                
+                pre {
+                display: block;
+                font-size: 10pt;
+                line-height: 1.5em;
+                font-family: monospace;
+                }
+                
+                pre, code {
+                background-color: #f5f5f5;
+                }
+                
+                
+                th {
+                font-weight: bold;
+                border: 1px solid lightgray;
+                background-color: #E5E5E5;
+                text-align: left;
+                vertical-align: top;
+                padding: 5px;
+                }
+                
+                #visualization {
+                width: 600px;
+                height: 400px;
+                }
+                
+                .vis-item.red {
+                background-color: #ff0000;
+                border-color: #8b0000;
+                color: #ffffff;
+                }
+                
+                .vis-item.yellow {
+                background-color: #ffd900;
+                border-color: #7c8502;
+                }
+                
+                .vis-item.pink {
+                background-color: #ff00ff;
+                border-color: #800080;
+                color: #ffffff;
+                }
+                
+                .vis-item.green {
+                background-color: #adff2f;
+                border-color: #008000;
+                }
+                
+                .vis-item.orange {
+                background-color: #ffbb00;
+                border-color: #ffa500;
+                }
+                
+                .vis-item.vis-selected {
+                background-color: #add8e6;
+                border-color: #ff0000;
+                }
+                
+                input {
+                margin: 2px 0;
+                }
+                
+                .styled-table {
+                border-collapse: collapse;
+                margin: 25px 0;
+                font-size: 0.9em;
+                font-family: sans-serif;
+                min-width: 400px;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+                }
+            </style>
+        </head>
+        <body>
+            
+            <table>
+                <col width="780"/>
+                <col width="30"/>
+                <tr>
+                    <td style="padding-right: 20px;">
+                        <div id="visualization"></div><br/>
+                    </td>
+                    <td style="padding-left: 5px;">
+                        <td>
+                            <p class="slds-text-heading--label slds-m-bottom--small">
+                                <input type="button" id="LoadFuture" value="Predicted Schedule"/><br/>
+                                <input type="button" id="LoadPast" value="Historical Schedule"/><br/>
+                                <input type="button" id="LoadBoth" value="Full Schedule"/><br/><br/><br/>
+                                <input type="button" id="focusNow" value="Focus Now"/><br/>
+                                <input type="button" id="focusToday" value="Focus Today"/><br/>
+                                <input type="button" id="focusCurrent" value="Focus First"/>
+                                <select id="dataflowName" value="150" onload="updateDataflowId(this.value)" onchange="updateDataflowId(this.value)" >
+                                    <option value="0">salestest eltDataflow</option>
+                                    <option value="50">The_Motivator</option>
+                                    <option value="150" selected="selected">Cases Cleaning</option>
+                                    <option value="100">Default Salesforce Dataflow</option>
+                                    <option value="250">RecipeTestSchedule</option>
+                                    <option value="200">Account Cleaning</option>
+                                </select><br/>
+                                <input type="button" id="focusSelected" value="Focus Selected"/>
+                                <br/><br/><br/>
+                                <input type="button" id="editMode" value="Edit Mode"/>
+                            </p>
+                    </td>
+                </td>
+        </tr>
+    </table>
+    
+    <script type="text/javascript">
+    // DOM element where the Timeline will be attached
+    var container = document.getElementById('visualization');
+    
+    var items = new vis.DataSet({!CombinedArray});
+    
+    let startDate = Date.now();
+    console.log(startDate);
+    let endDate = startDate+(7*24*60*60*1000);
+    console.log(endDate);
+    
+    var value="150";
+    
+    function updateDataflowId(dataflowId){
+        value = dataflowId;
+        console.log('value: '+value);
+    }
+    
+    function customOrder(a, b) {
+        // order by id
+        return a.id - b.id;
+    }
+    
+    function zoomInTo() {
+        setTimeout(function(){ 
+            timeline.zoomIn(1); }, 600);     
+    }
+    
+    function getToday() {
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var yyyy = today.getFullYear();
+        
+        today = yyyy + '/' + mm + '/' + dd;
+        return today;
+    }
+    
+    function getTomorrow() {
+        var tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        var dd = String(tomorrow.getDate()).padStart(2, '0');
+        var mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        var yyyy = tomorrow.getFullYear();
+        
+        tomorrow = yyyy + '/' + mm + '/' + dd;
+        return tomorrow;
+    }
+    
+    // Configuration for the Timeline
+    var options = {
+        order: customOrder,
+        start: startDate,
+        end: endDate,
+        showCurrentTime:true,
+        height: 430,
+        width: 750,
+    };
+    
+    // Create a Timeline
+    var timeline = new vis.Timeline(container, items, options);
+    
+    
+    // on click options
+    document.getElementById('focusNow').onclick = function() {
+        var today = timeline.getCurrentTime();
+        var plus24 = today;
+        plus24.setDate(today.getDate() + 1);
+        timeline.moveTo(today,plus24);
+    };
+    
+    document.getElementById('focusToday').onclick = function() {
+        timeline.setWindow(getToday(),getTomorrow());      
+    };
+    
+    document.getElementById('focusCurrent').onclick = function() {
+        timeline.setSelection([parseInt(value)], {
+            focus: true
+        });
+    };
+    
+    document.getElementById('LoadFuture').onclick = function() {
+        timeline.destroy();
+        items = new vis.DataSet({!ArrayData});
+        timeline = new vis.Timeline(container, items, options);
+    };
+    
+    document.getElementById('LoadPast').onclick = function() {
+        timeline.destroy();
+        items = new vis.DataSet({!ArrayOfJobsData});
+        timeline = new vis.Timeline(container, items, options);
+    };
+    
+    document.getElementById('LoadBoth').onclick = function() {
+        timeline.destroy();
+        items = new vis.DataSet({!CombinedArray});
+        timeline = new vis.Timeline(container, items, options);
+    };
+    
+    document.getElementById('editMode').onclick = function() {
+        timeline.destroy();
+        
+        var options = {
+            order: customOrder,
+            start: startDate,
+            end: endDate,
+            showCurrentTime:true,
+            height: 430,
+            width: 750,
+            editable: {
+                add: true,         // add new items by double tapping
+                updateTime: true,  // drag items horizontally
+                updateGroup: true, // drag items from one group to another
+                remove: true,       // delete an item by tapping the delete button top right
+                overrideItems: false  // allow these options to override item.editable
+            }
+        };
+        
+        timeline = new vis.Timeline(container, items, options);
+    };
+    
+    document.getElementById('focusSelected').onclick = function() {
+        var selection = timeline.getSelection();
+        timeline.focus(selection);
+    };
+    
+    </script>
+</body>
+</html>    
+
+</apex:page>
