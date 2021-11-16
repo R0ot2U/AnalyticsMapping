@@ -18,11 +18,11 @@ public class AnalyticsMapController {
         dataflowJobList = [SELECT analyticsmap__Dataflow__r.Name, analyticsmap__Dataflow_Instance_Id__c,analyticsmap__Dataflow__c,analyticsmap__Duration__c,
                            analyticsmap__Executed_DateTime__c,analyticsmap__Job_Type__c,analyticsmap__Label__c,analyticsmap__Message__c,analyticsmap__Nodes_URL__c,
                            analyticsmap__Progress__c,analyticsmap__Start_DateTime__c,analyticsmap__Status__c,Id,Name FROM analyticsmap__Dataflow_Job__c 
-                           ORDER BY analyticsmap__Dataflow__c ASC NULLS FIRST];
+                           ORDER BY analyticsmap__Dataflow__c ASC NULLS FIRST LIMIT 500];
         
         system.debug('dataflowList: '+dataflowList);
         
-        List<String> colors = new List<String>{'red','yellow','pink','green','orange','purple','blue'};
+        List<String> colors = new List<String>{'red','yellow','pink','green','orange','purple','blue','grey','white','black'};
             List<String> scheduleList = new List<String>();
         String color;
         myArray = new List<String>();
@@ -39,9 +39,19 @@ public class AnalyticsMapController {
         count = 50;
         Id curdataflowRecordId;
         DateTime runDate;
+        String cronData;
         
         //build ArrayData for future jobs
         for(analyticsmap__Dataflow__c d : dataflowList){
+            
+            if(CronHelper.validateCronExp(d.analyticsmap__Schedule__c)) {
+                cronData = CronHelper.calculateFutureJobs(d.analyticsmap__Schedule__c,count);
+            } else {
+                cronData = CronHelper.calculateFutureJobs(CronHelper.convertJsonToCronExp(d.analyticsmap__Schedule__c),count);
+            }
+            
+            scheduleList = cronData.split(',');
+            /*
             String response = AnalyticsMapping.makeCallout('cronjob', d.analyticsmap__Schedule__c, count);
             //if response is 500 instead of erroring out we give the response String as 'Invalid Expression or Error' 
             system.debug(response);
@@ -51,16 +61,19 @@ public class AnalyticsMapController {
             } else {
                 System.debug('Callout exception or expression is invalid');
                 break;
-            }
+            } */
             Id = i;
             content = d.Name;
             startDateTime = String.valueOfGmt(d.analyticsmap__Next_Run_Date__c);
+            System.debug('d.analyticsmap__Next_Run_Date__c: '+d.analyticsmap__Next_Run_Date__c);
+            System.debug('d.analyticsmap__Average_Duration_Minutes__c: '+d.analyticsmap__Average_Duration_Minutes__c);
+            System.debug('d.Id :'+d.Id);
             endDateTime = String.valueOfGmt(d.analyticsmap__Next_Run_Date__c.addMinutes((d.analyticsmap__Average_Duration_Minutes__c).intValue()));
             color = colors[p];
             system.debug('color: '+color);
             p++;            
             myArray.add('{id: '+id+', content: \''+content+'\', start: \''+startDateTime+'Z\', end: \''+endDateTime+'Z\', className: \''+color
-                              +'\', title: \''+'<table border="1" class="styled-table"> <tr> <td>ItemId</td><td>'+id+'</td></tr> <td>DataflowId</td><td>02K09000000rRqNEAU</td></tr><tr> <td>Duration</td><td>181 secs</td></tr></table>'+'\'}');
+                              +'\', title: \''+'<table border="1" class="styled-table"> <tr> <td>ItemId</td><td>'+id+'</td></tr> <td>DataflowId</td><td>02K09000000rRqNEAU</td></tr><tr> <td>Duration</td><td>'+d.analyticsmap__Average_Duration_Minutes__c+'</td></tr></table>'+'\'}');
             // we already have the first schedule run done so remove it from the next iterations list
             scheduleList.remove(0);
             i++;
@@ -74,7 +87,7 @@ public class AnalyticsMapController {
                 endDateTimeValue = endDateTimeValue.addMinutes((d.analyticsmap__Average_Duration_Minutes__c).intValue());
                 endDateTime = String.valueOf(endDateTimeValue);
                 myArray.add('{id: '+id+', content: \''+content+'\', start: \''+startDateTime+'Z\', end: \''+endDateTime+'Z\', className: \''+color
-                              +'\', title: \''+'<table border="1" class="styled-table"><tr> <td>ItemId</td><td>'+id+'</td></tr> <tr> <td>DataflowId</td><td>02K09000000rRqNEAU</td></tr><tr> <td>Duration</td><td>181 secs</td></tr></table>'+'\'}');
+                              +'\', title: \''+'<table border="1" class="styled-table"><tr> <td>ItemId</td><td>'+id+'</td></tr> <tr> <td>DataflowId</td><td>02K09000000rRqNEAU</td></tr><tr> <td>Duration</td><td>'+d.analyticsmap__Average_Duration_Minutes__c+'</td></tr></table>'+'\'}');
                 i++;
             }
         }
