@@ -44,6 +44,10 @@ public class AvgDuration {
                     }
                     when else {		  // default block, optional
                         // do nothing
+                        // fixing for null values
+                        if(dataflowToUpdate[i].analyticsmap__Average_Duration_Minutes__c == null){
+                            dataflowToUpdate[i].analyticsmap__Average_Duration_Minutes__c = 0;
+                        }
                     }
                 }
             }
