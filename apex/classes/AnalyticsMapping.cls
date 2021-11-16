@@ -82,6 +82,7 @@ public without sharing class AnalyticsMapping {
             HttpResponse httpResponse = http.send(httpRequest);  
             if (httpResponse.getStatusCode() == 200 ) {  
                 response = httpResponse.getBody();
+                system.debug(response);
                 return response;   
             } else if (httpResponse.getStatusCode() == 500) {
                 response = 'Invalid Expression or Error';
@@ -219,19 +220,26 @@ public without sharing class AnalyticsMapping {
                     if(!curDataflowsList.isEmpty()) {
                         for(analyticsmap__Dataflow__c d : curDataflowsList){
                             
-                            /* for debugging specific dataflowJobIds
-                            if(runId == '03C0900000265EkEAI'){
+                            //for debugging specific dataflowJobIds
+                            if(runId == '0eP090000013WfWEAU'){
                                 system.debug('label: '+label);
                             	system.debug('d.Name: '+d.Name);
+                                system.debug('d.Id: '+d.id);
+                                system.debug('instanceId: '+runId);
                             }
-							*/
+							
                             if(d.Name == label || d.Name+'_recipe' == label || label+' Recipe' == d.Name){
                                 //system.debug('contains label');
                                 //system.debug('d.Id: '+d.id);
+                                //system.debug('instanceId: '+runId);
                                 dataflowRecordId = d.Id;
                                 break;
+                            } else if(label == 'Analytics Mapping_recipe'){ // <<< REMOVE THIS FOR PRODUCTION VERSION THIS IS A HACK TO FIX THE NAME CHANGING CAUSING ISSUES / TODO: Must link via IDs or API names which don't change as often
+                                dataflowRecordId = 'a0309000001cfOnAAI';
                             } else {
                                 //system.debug('doesn\'t contain label');
+                                //system.debug('d.Id: '+d.id);
+                                //system.debug('instanceId: '+runId);
                             }
                         }
                     } else {
